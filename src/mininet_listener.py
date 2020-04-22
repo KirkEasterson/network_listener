@@ -31,48 +31,64 @@ class Observer:
         pass
 
 
-class MininetEvent(Enum):
-    ADD_HOST = "New host created"
-    DEL_HOST = "Host deleted"
-    ADD_SWITCH = "New switch created"
-    DEL_SWITCH = "Switch deleted"
-    ADD_CONTROLLER = "New controller created"
-    DEL_CONTROLLER = "Controller deleted"
-    ADD_LINK = "New link created"
-    DEL_LINK = "Link deleted"
-    CONFIG_HOSTS = "Hosts configured"
-
-class MininetCommand(Enum):
-    CONFIG_HOSTS = "Hosts configured"
-    PING = "Ping sent"
-    PING_FULL = "Ping full sent"
-    PING_ALL = "Ping all sent"
-    PING_PAIR = "Ping pair sent"
-    PING_ALL_FULL = "Ping all full sent"
-    PING_PAIR_FULL = "Ping pair full sent"
-
-
 class EventHandler(Observable):
-
-    filename = ""
 
     def __init__(self):
         Observable.__init__(self)
 
-    # This event will be rewritten. I plan on creating methods for each event type. The
-    # params will be passed down to that method and the PTF code will be written there
-    def create_event(self, event_type, info):
-        self.notify_observers(event_type, str(info))
-        # The below works for anything that is not a Link. There should be events for
-        #   each type of event, and that will properly handle a Link. For now, the above
-        #   generic method is used.
-        # self.notify_observers(event_type,info.params,info.intfs,info.ports,info.nameToIntf)
+    def hostAdded(self, host):
+        self.notify_observers("New host created", host)
 
-    def create_command(self, command_type):
-        self.notify_observers(command_type)
+    def hostDeleted(self, host):
+        self.notify_observers("Host deleted", host)
+
+    def switchAdded(self, switch):
+        self.notify_observers("New switch created", switch)
+
+    def switchDeleted(self, switch):
+        self.notify_observers("Switch deleted", switch)
+
+    def controllerAdded(self, controller):
+        self.notify_observers("New controller added", controller)
+
+    def controllerDeleted(self, controller):
+        self.notify_observers("Controller deleted", controller)
+
+    def natAdded(selfself, nat):
+        self.notify_observers("New NAT added", nat)
+
+    def linkAdded(self, link):
+        self.notify_observers("New link added", link)
+
+    def linkDeleted(self, link):
+        self.notify_observers("Link deleted", link)
+
+    def hostsConfigured(self, hosts):
+        self.notify_observers("Host configured", hosts)
+
+    def pingSent(self, src, dst):
+        self.notify_observers("Ping sent", src, dst)
+
+    def pingFullSent(self, src, dst):
+        self.notify_observers("Ping full sent", src, dst)
+
+    def pingAllSent(self, timeout):
+        self.notify_observers("Ping all sent", timeout)
+
+    def pingPairSent(self, src, dst):
+        self.notify_observers("Ping pair sent", src, dst)
+
+    def pingAllFullSent(self, src):
+        self.notify_observers("Ping all full sent", src)
+
+    def pingPairFullSent(self, src, dst):
+        self.notify_observers("Ping pair sent", src, dst)
+
+    def linkStatusConfigured(self, src, dst, status):
+        self.notify_observers("Link status configured", src, dst, status)
+
 
 class EventListener(Observer):
-
     filename = ""
 
     def __init__(self, observable, filename):
@@ -82,4 +98,4 @@ class EventListener(Observer):
     def notify(self, *args, **kwargs):
         with open(self.filename, 'a') as out_file:
             for arg in args:
-                out_file.write(str(arg)+"\n")
+                out_file.write(str(arg) + "\n")
