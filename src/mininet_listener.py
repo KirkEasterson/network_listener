@@ -43,6 +43,12 @@ class EventHandler(Observable):
     def __init__(self):
         Observable.__init__(self)
 
+    def sessionStarted(self):
+        self.notify_observers("Session started")
+
+    def sessionStopped(self):
+        self.notify_observers("Session stopped")
+
     def hostAdded(self, host):
         self.hosts.add(host)
         self.notify_observers("New host created", host)
