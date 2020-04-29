@@ -33,34 +33,49 @@ class Observer:
 
 class EventHandler(Observable):
 
+    commands = ()
+
+    hosts = set()
+    switches = set()
+    controllers = set()
+    links = set()
+
     def __init__(self):
         Observable.__init__(self)
 
     def hostAdded(self, host):
+        self.hosts.add(host)
         self.notify_observers("New host created", host)
 
     def hostDeleted(self, host):
+        self.hosts.discard(host)
         self.notify_observers("Host deleted", host)
 
     def switchAdded(self, switch):
+        self.switches.add(switch)
         self.notify_observers("New switch created", switch)
 
     def switchDeleted(self, switch):
+        self.switches.discard(switch)
         self.notify_observers("Switch deleted", switch)
 
     def controllerAdded(self, controller):
+        self.controllers.add(controller)
         self.notify_observers("New controller added", controller)
 
     def controllerDeleted(self, controller):
+        self.controllers.discard(controller)
         self.notify_observers("Controller deleted", controller)
 
-    def natAdded(selfself, nat):
+    def natAdded(self, nat):
         self.notify_observers("New NAT added", nat)
 
     def linkAdded(self, link):
+        self.links.add(link)
         self.notify_observers("New link added", link)
 
     def linkDeleted(self, link):
+        self.links.discard(link)
         self.notify_observers("Link deleted", link)
 
     def hostsConfigured(self, hosts):
