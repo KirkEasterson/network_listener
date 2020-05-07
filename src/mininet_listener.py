@@ -43,7 +43,7 @@ class EventHandler(Observable):
 
     def __init__(self):
         Observable.__init__(self)
-        logging.basicConfig(filename="mininet_listener.log", filemode="w",format="%(asctime)s %(message)s")
+        logging.basicConfig(filename="mininet_listener.log", filemode="w",format="%(asctime)s %(message)s", level="INFO")
 
     def sessionStarted(self):
         logging.info("Session started")
