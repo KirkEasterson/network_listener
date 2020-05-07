@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+import logging
 
 
 class Observable:
@@ -33,7 +34,7 @@ class Observer:
 
 class EventHandler(Observable):
 
-    commands = ()
+    commands = []
 
     hosts = set()
     switches = set()
@@ -42,35 +43,44 @@ class EventHandler(Observable):
 
     def __init__(self):
         Observable.__init__(self)
+        logging.basicConfig(filename="mininet_listener.log", filemode="w",format="%(asctime)s %(message)s")
 
     def sessionStarted(self):
+        logging.info("Session started")
         self.notify_observers("Session started")
 
     def sessionStopped(self):
+        logging.info("Session stopped")
         self.notify_observers("Session stopped")
 
     def hostAdded(self, host):
         self.hosts.add(host)
-        self.notify_observers("New host created", host)
+        logging.info("New host created\n\tIP: %s".format(host.params["ip"]))
+        self.notify_observers("New host created", host.params)
 
     def hostDeleted(self, host):
         self.hosts.discard(host)
+        logging.info("Host deleted\n\tIP: %s".format(host.params["ip"]))
         self.notify_observers("Host deleted", host)
 
     def switchAdded(self, switch):
         self.switches.add(switch)
+        logging.info("New switch created\n\tIP: %s".format(switch.params["ip"]))
         self.notify_observers("New switch created", switch)
 
     def switchDeleted(self, switch):
         self.switches.discard(switch)
+        logging.info("Switch deleted\n\tIP: %s".format(switch.params["ip"]))
         self.notify_observers("Switch deleted", switch)
 
     def controllerAdded(self, controller):
         self.controllers.add(controller)
+        logging.info("New controller created\n\tIP: %s".format(controller.params["ip"]))
         self.notify_observers("New controller added", controller)
 
     def controllerDeleted(self, controller):
         self.controllers.discard(controller)
+        logging.info("Controller deleted\n\tIP: %s".format(controller.params["ip"]))
         self.notify_observers("Controller deleted", controller)
 
     def natAdded(self, nat):
@@ -88,21 +98,33 @@ class EventHandler(Observable):
         self.notify_observers("Host configured", hosts)
 
     def pingSent(self, src, dst):
+        self.commands.append(("Ping", src, dst))
+        logging.info("Ping sent from %s to %s".format(src, dst))
         self.notify_observers("Ping sent", src, dst)
 
     def pingFullSent(self, src, dst):
+        self.commands.append(("Ping full", src, dst))
+        logging.info("Ping full sent from %s to %s".format(src, dst))
         self.notify_observers("Ping full sent", src, dst)
 
     def pingAllSent(self, timeout):
+        self.commands.append(("Ping all", timeout))
+        logging.info("Ping all sent with timeout %s".format(timeout))
         self.notify_observers("Ping all sent", timeout)
 
     def pingPairSent(self, src, dst):
+        self.commands.append(("Ping pair", src, dst))
+        logging.info("Ping pair sent from %s to %s".format(src, dst))
         self.notify_observers("Ping pair sent", src, dst)
 
     def pingAllFullSent(self, src):
+        self.commands.append(("Ping all full", src))
+        logging.info("Ping all full sent from".format(src))
         self.notify_observers("Ping all full sent", src)
 
     def pingPairFullSent(self, src, dst):
+        self.commands.append(("Ping pair full", src, dst))
+        logging.info("Ping pair full sent from %s to %s".format(src, dst))
         self.notify_observers("Ping pair sent", src, dst)
 
     def linkStatusConfigured(self, src, dst, status):
