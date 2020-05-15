@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 import logging
+from ptf_generator import ptfGenerator
 
 
 class Observable:
@@ -51,8 +52,9 @@ class EventHandler(Observable):
 
     def sessionStopped(self):
         logging.info("Session stopped")
-        # generator = ptf_generator()
         self.notify_observers("Session stopped")
+        generator = ptfGenerator("mininet_listener_ptf", self.commands, self.hosts, self.switches, self.controllers, self.links)
+        generator.generate()
 
     def hostAdded(self, host):
         self.hosts.add(host)

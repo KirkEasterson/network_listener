@@ -13,15 +13,13 @@ class ptfGenerator:
 
     def __init__(self, filename, commands, hosts, switches, controllers, links):
         self.filename = filename
-
-    def setData(self, commands, hosts, switches, controllers, links):
         self.commands = commands
         self.hosts = hosts
         self.switches = switches
         self.controllers = controllers
         self.links = links
 
-    def generatePremble(self):
+    def generatePreamble(self, classname):
         return """
 import ptf
 from ptf.base_tests import BaseTest
@@ -58,3 +56,8 @@ class {className}(BaseTest):
         for interface in interfaces:
             command += " --interface "+interface
         os.system(command)
+
+    def generate(self):
+        file = open(self.filename+".py", "w")
+        file.write(self.generatePreamble(self.filename))
+        file.close()
