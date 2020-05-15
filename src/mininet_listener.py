@@ -134,13 +134,9 @@ class EventHandler(Observable):
 
 
 class EventListener(Observer):
-    filename = ""
 
-    def __init__(self, observable, filename):
-        self.filename = filename
+    def __init__(self, observable):
         Observer.__init__(self, observable)
 
     def notify(self, *args, **kwargs):
-        with open(self.filename, 'a') as out_file:
-            for arg in args:
-                out_file.write(str(arg) + "\n")
+        pass
