@@ -56,32 +56,32 @@ class EventHandler(Observable):
 
     def hostAdded(self, host):
         self.hosts.add(host)
-        logging.info("New host created\n\tIP: {}".format(host.params["ip"]))
+        logging.info("New host created\t{}{}".format(host, host.params))
         self.notify_observers("New host created", host.params)
 
     def hostDeleted(self, host):
         self.hosts.discard(host)
-        logging.info("Host deleted\n\tIP: {}".format(host.params["ip"]))
+        logging.info("Host deleted\t{}{}".format(host, host.params))
         self.notify_observers("Host deleted", host)
 
     def switchAdded(self, switch):
         self.switches.add(switch)
-        logging.info("New switch created\n\tIP: {}".format(switch.params))
-        self.notify_observers("New switch created", switch)
+        logging.info("New switch created\t{}{}".format(switch, switch.params))
+        self.notify_observers("New switch created", switch.params)
 
     def switchDeleted(self, switch):
         self.switches.discard(switch)
-        logging.info("Switch deleted\n\tIP: {}".format(switch.params))
-        self.notify_observers("Switch deleted", switch)
+        logging.info("Switch deleted")
+        self.notify_observers("Switch deleted\t{}{}".format(switch, switch.params))
 
     def controllerAdded(self, controller):
         self.controllers.add(controller)
-        logging.info("New controller created\n\tIP: {}".format(controller.params["ip"]))
+        logging.info("New controller created\t{}{}".format(controller, controller.params))
         self.notify_observers("New controller added", controller)
 
     def controllerDeleted(self, controller):
         self.controllers.discard(controller)
-        logging.info("Controller deleted\n\tIP: {}".format(controller.params["ip"]))
+        logging.info("Controller deleted\t{}{}".format(controller, controller.params))
         self.notify_observers("Controller deleted", controller)
 
     def natAdded(self, nat):
@@ -100,12 +100,12 @@ class EventHandler(Observable):
 
     def pingSent(self, src, dst):
         self.commands.append(("Ping", src, dst))
-        logging.info("Ping sent from {} to {}".format(src, dst))
+        logging.info("Ping sent from {} to {}\t{}{}\t{}{}".format(src, dst, src,  src.params, dst, dst.params))
         self.notify_observers("Ping sent", src, dst)
 
     def pingFullSent(self, src, dst):
         self.commands.append(("Ping full", src, dst))
-        logging.info("Ping full sent from {} to {}".format(src, dst))
+        logging.info("Ping full sent from {} to {}\t{}{}\t{}{}".format(src, dst, src,  src.params, dst, dst.params))
         self.notify_observers("Ping full sent", src, dst)
 
     def pingAllSent(self, timeout):
@@ -115,21 +115,22 @@ class EventHandler(Observable):
 
     def pingPairSent(self, src, dst):
         self.commands.append(("Ping pair", src, dst))
-        logging.info("Ping pair sent from {} to {}".format(src, dst))
+        logging.info("Ping pair sent from {} to {}\t{}{}\t{}{}".format(src, dst, src,  src.params, dst, dst.params))
         self.notify_observers("Ping pair sent", src, dst)
 
     def pingAllFullSent(self, src):
         self.commands.append(("Ping all full", src))
-        logging.info("Ping all full sent from".format(src))
+        logging.info("Ping all full sent from {}\t{}{}".format(src, src, src.params))
         self.notify_observers("Ping all full sent", src)
 
     def pingPairFullSent(self, src, dst):
         self.commands.append(("Ping pair full", src, dst))
-        logging.info("Ping pair full sent from {} to {}".format(src, dst))
+        logging.info("Ping pair full sent from {} to {}\t{}{}\t{}{}".format(src, dst, src,  src.params, dst, dst.params))
         self.notify_observers("Ping pair sent", src, dst)
 
     def linkStatusConfigured(self, src, dst, status):
         self.notify_observers("Link status configured", src, dst, status)
+        logging.info("Link status configured to {}\t{}{}\t{}{}".format(status, src, dst, src,  src.params, dst, dst.params))
 
 
 class EventListener(Observer):
