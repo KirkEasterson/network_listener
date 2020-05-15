@@ -34,7 +34,7 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
 class {className}(BaseTest):
-""".format(className=self.className)
+""".format(className=classname)
 
     def generateTestMethod(self):
         return ""
