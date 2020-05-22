@@ -1,63 +1,92 @@
 import os
 
+
 class ptfGenerator:
 
-    filename = ""
     className = ""
 
-    comman1ds = ()
+    commands = ()
     hosts = set()
     switches = set()
     controllers = set()
     links = set()
 
-    def __init__(self, filename, commands, hosts, switches, controllers, links):
-        self.filename = filename
+    macs = {}
+    pings = {}
+
+    def __init__(self, className, commands, hosts, switches, controllers, links, macs, ips, pings):
+        self.className = className
         self.commands = commands
         self.hosts = hosts
         self.switches = switches
         self.controllers = controllers
         self.links = links
+        self.macs = macs
+        self.ips = ips
+        self.pings = pings
 
-    def generatePreamble(self, classname):
+    def generatePreamble(self):
         return """
-import ptf
-from ptf.base_tests import BaseTest
-from ptf import config
-import ptf.testutils as testutils
+import time
+import logging
+import ptf.dataplane as dataplane
+import sai_base_test
+from ptf.testutils import *
+from switch_sai_thrift.ttypes import  *
+from ptf.mask import Mask
 
-import switch_sai_thrift
-import switch_sai_thrift.switch_sai_rpc as switch_sai_rpc
+"""
 
-from thrift.transport import TSocket
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+    def initializeVariables(self):
+        return """
+switch_inited=0
+port_list = []
+table_attr_list = []
 
-class {className}(BaseTest):
-""".format(className=classname)
+"""
 
-    def generateTestMethod(self):
-        return ""
+    def generateClassDefinition(self):
+        return """
+class {className}(sai_base_test.SAIThriftDataplaneTest):
+""".format(className=self.className)
 
-    def runTest(self, testDir, interfaces):
+    def createPing(self, src, dst):
+        return """
+        print(\"Sending packet from {src} to {dst}\")
+        switch_init(self.client) # Need help with this
+        #port1 = \"port1\"
+        #port2 = \"port2\"
+        mac1 = \"{mac1}\"
+        mac2 = \"{mac2}\"
 
-        # Create the required veths
-        os.system("""cd $P4FACTORY/tools/
-            sudo ./veth_setup.sh""")
+        pkt = simple_tcp_packet(eth_dst=\"{mac1}\",
+                                eth_src=\"{mac2}\",
+                                ip_dst=\"{ip_dst}\",
+                                ip_id=101,
+                                ip_ttl=64)
 
-        # Compile the target switch and run it
-        os.system("""cd $P4FACTORY/targets/switch/
-            make bm-switchsai
-            sudo ./behavioral-model""")
+        try:
+            send_packet(self, (0, 2), pkt)
+            verify_packets(self, pkt, device_number=0, ports=[1])
+        finally:
+            # Some sort of cleanup
 
-        # Run the test
-        command = """cd $PTF/
-            sudo ./ptf --test-dir {testDir} --pypath $PWD"""
-        for interface in interfaces:
-            command += " --interface "+interface
-        os.system(command)
+""".format(src=src, dst=dst, mac1=self.macs[src], mac2=self.macs[dst], ip_dst=self.ips[dst])
+
+    def generateRunTestMethod(self):
+        result = """
+def runTest(self):
+"""
+        for ping in self.pings:
+            (src, dst) = ping
+            result += self.createPing(src, dst)
+        return result
+
 
     def generate(self):
-        file = open(self.filename+".py", "w")
-        file.write(self.generatePreamble(self.filename))
+        file = open(self.className+".py", "w")
+        file.write(self.generatePreamble())
+        file.write(self.initializeVariables())
+        file.write(self.generateClassDefinition())
+        file.write(self.generateRunTestMethod())
         file.close()
