@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 import logging
-from ptf_generator import ptfGenerator
+from ptf_generator import PtfGenerator
 
 
 class Observable:
@@ -37,15 +37,15 @@ class EventHandler(Observable):
 
     commands = []
 
-    hosts = set()
-    switches = set()
-    controllers = set()
-    links = set() # tuples containing the ends of a link (order is irrelevant)
+    hosts = []
+    switches = []
+    controllers = []
+    links = [] # tuples containing the ends of a link (order is irrelevant)
 
     macs = {} # key:hostName ; value:MAC
     ips = {} # key:hostName ; value:IP
 
-    pings = set() # tuples containing (src,dst)
+    pings = [] # tuples containing (src,dst)
 
     def __init__(self):
         Observable.__init__(self)
@@ -56,44 +56,44 @@ class EventHandler(Observable):
 
     def sessionStopped(self):
         logging.info("Session stopped")
-        generator = ptfGenerator("mininet_listener_ptf", self.commands, self.hosts, self.switches, self.controllers, self.links, self.macs, self.ips, self.pings)
-        generator.generate()
+        ptfGenerator = PtfGenerator("mininet_listener_ptf.py", self.commands, self.hosts, self.switches, self.controllers, self.links, self.macs, self.ips, self.pings)
+        ptfGenerator.generate()
 
     def hostAdded(self, host):
         # Host doesn't have a MAC address at this point, but they an IP
-        self.hosts.add(host.name)
+        self.hosts.append(host.name)
         self.ips[host.name]= host.params["ip"]
         logging.info("New host created:{} {}".format(host, host.params["ip"]))
 
     def hostDeleted(self, host):
-        self.hosts.discard(host.name)
+        self.hosts.remove(host.name)
         logging.info("Host deleted: {} {}".format(host, host.params))
 
     def switchAdded(self, switch):
-        self.switches.add(switch.name)
+        self.switches.append(switch.name)
         logging.info("New switch created\t{}{}".format(switch, switch.params))
 
     def switchDeleted(self, switch):
-        self.switches.discard(switch.name)
+        self.switches.remove(switch.name)
         logging.info("Switch deleted")
 
     def controllerAdded(self, controller):
-        self.controllers.add(controller.name)
+        self.controllers.append(controller.name)
         logging.info("New controller created\t{}{}".format(controller, controller.params))
 
     def controllerDeleted(self, controller):
-        self.controllers.discard(controller.name)
+        self.controllers.remove(controller.name)
         logging.info("Controller deleted\t{}{}".format(controller, controller.params))
 
     def natAdded(self, nat):
         self.notify_observers("New NAT added", nat)
 
     def linkAdded(self, link):
-        self.links.add((link.intf1, link.intf2))
+        self.links.append((link.intf1, link.intf2))
         logging.info("Link added from {} to {}".format(link.intf1, link.intf2))
 
     def linkDeleted(self, link):
-        self.links.discard((link.intf1, link.intf2))
+        self.links.remove((link.intf1, link.intf2))
         logging.info("Link deleted from {} to {}".format(link.intf1, link.intf2))
 
     def hostsConfigured(self, hosts):
@@ -103,7 +103,7 @@ class EventHandler(Observable):
         self.commands.append(("Ping", src, dst))
         self.macs[src.name]=src.MAC()
         self.macs[dst.name]=dst.MAC()
-        self.pings.add((src.name,dst.name))
+        self.pings.append((src.name,dst.name))
         logging.info("Ping sent from {} to {}\t{}{}\t{}{}".format(src, dst, src,  src.MAC(), dst, dst.MAC()))
 
     def pingFullSent(self, src, dst):
