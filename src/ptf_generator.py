@@ -126,23 +126,21 @@ pkts.append({pktName})
 
     # packets is a list containing the variable names of all the packets
     def sendPackets(self, level=0):
+        sendBlock = """
+for pkt in pkts:
+    for outport in [self.port1, self.port2]:
+        packet_out_msg = self.helper.build_packet_out(
+            payload=str(pkt),
+            metadata={
+                "egress_port": outport,
+                "_pad": 0
+            })
 
-        for pkt in pkts:
-            sendBlock = """
-# Sending {}
-for outport in [self.port1, self.port2]:
-    packet_out_msg = self.helper.build_packet_out(
-        payload=str(pkt),
-        metadata={
-            "egress_port": outport,
-            "_pad": 0
-        })
+        self.send_packet_out(packet_out_msg)
+        testutils.verify_packet(self, pkt, outport)
 
-    self.send_packet_out(packet_out_msg)
-    testutils.verify_packet(self, pkt, outport)
-
-testutils.verify_no_other_packets(self)
-""".format(nameof(pkt))
+    testutils.verify_no_other_packets(self)
+"""
         return self.indentCode(sendBlock, level)
 
 
