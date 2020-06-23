@@ -1,4 +1,5 @@
 import os
+from varname import nameof
 
 class PythonGenerator:
 
@@ -106,49 +107,51 @@ class PtfGenerator(PythonGenerator):
         self.ips = ips
         self.pings = pings
 
+        pkts = []
 
 
 
     def createPacket(self, pktName, src, dst, level=0):
         pkt = """
-print(\"Sending L2 packet - {src} -> {dst})\"
-{pktName} = simple_tcp_packet(eth_dst=macs[{dst}],
-                        eth_src=macs[{src}],
-                        ip_dst=ips[{dst}],
-                        ip_id=102,
-                        ip_ttl=64)
+print(\"Sending packet - {src} -> {dst}\")
+{pktName} = testutils.simple_tcp_packet(
+                        eth_src=macs[\"{src}\"],
+                        eth_dst=macs[\"{dst}\"],
+                        ip_src=ips[\"{src}\"],
+                        ip_dst=ips[\"{dst}\"])
 pkts.append({pktName})
 """.format(pktName=pktName, src=src, dst=dst)
         return self.indentCode(pkt, level)
 
+
+
     # packets is a list containing the variable names of all the packets
     def sendPackets(self, level=0):
-        sendBlock = """
-try:
-    for pkt in pkts:
-        send_packet(self, 2, pkt)
-        verify_packets(self, pkt, ports=[1])
-finally:
-    for (host, port) in ports.iterItems():
-        sai_thrift_delete_fdb(self.client, vlan_id, macs[host], port)
-        self.client.sai_thrift_remove_ports_from_vlan(vlan_id, vlan_ports)
-        self.client.sai_thrift_delete_vlan(vlan_id)
-"""
+
+        for pkt in pkts:
+            sendBlock = """
+# Sending {}
+for outport in [self.port1, self.port2]:
+    packet_out_msg = self.helper.build_packet_out(
+        payload=str(pkt),
+        metadata={
+            "egress_port": outport,
+            "_pad": 0
+        })
+
+    self.send_packet_out(packet_out_msg)
+    testutils.verify_packet(self, pkt, outport)
+
+testutils.verify_no_other_packets(self)
+""".format(nameof(pkt))
         return self.indentCode(sendBlock, level)
 
+
+
     def generateRunTestMethod(self, level=0):
-        # mac1 = self.macs[src]
-        # mac2 = self.macs[dst]
-        # ip_dst = self.ips[dst].split("/")[0]
-        mac1 = ""
-        mac2 = ""
-        ip_dst = ""
 
         code_block = self.indentCode("def runTest(self):", level)
-        code_block += self.assignVariable("port1", "port_list[1]", level+1)
-        code_block += self.assignVariable("port2", "port_list[2]", level+1)
-        code_block += self.assignVariable("mac_action", "1", level+1)
-        code_block += self.assignVariable("pkts", "()", level+1)
+        code_block += self.assignVariable("pkts", "[]", level+1)
 
         for num, (src, dst) in enumerate(self.pings, start=1):
             pktName = "pkt{}".format(num)
@@ -163,20 +166,11 @@ finally:
     def generate(self):
 
         imports = [
-            ("time", "", ""),
-            ("logging", "", ""),
-            ("ptf.dataplane", "", "dataplane"),
-            ("sai_base_test", "" ,""),
-            ("*", "ptf.testutils" ,""),
-            ("*", "switch_sai_thrift.ttypes", ""),
-            ("Mask", "ptf.mask", "")
+            ("group", "ptf.testutils", ""),
+            ("*", "lib.base_test", ""),
         ]
 
-        global_vars = [
-            ("switch_inited", "0"),
-            ("port_list", "[]"),
-            ("table_attr_list", "[]"),
-        ]
+        global_vars = []
 
         vars_from_mn = [
             ("hosts", str(self.hosts)),
@@ -190,30 +184,6 @@ finally:
         code += self.addComment("The variables below are from the Mininet session")
         code += self.assignVariables(vars_from_mn)
         
-        code += self.generateClassDefinition("test", "sai_base_test.SAIThriftDataplaneTest")
+        code += self.generateClassDefinition("FirstTest", "P4RuntimeTest")
         code += self.generateRunTestMethod(1)
         self.writeToFile(code)
-
-
-        # file.write(self.generatePreamble(imports))
-        # file.write(self.assignVariables(global_vars))
-        # file.write(self.generateClassDefinition("test", "sai_base_test.SAIThriftDataplaneTest"))
-        # file.write(self.generateRunTestMethod(1))
-        # file.close()
-
-#         preamble = """
-# import time
-# import logging
-# import ptf.dataplane as dataplane
-# import sai_base_test
-# from ptf.testutils import *
-# from switch_sai_thrift.ttypes import  *
-# from ptf.mask import Mask
-# """
-
-
-#         variables = """
-# switch_inited=0
-# port_list = []
-# table_attr_list = []
-# """
