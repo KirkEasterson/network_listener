@@ -20,8 +20,6 @@
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
-
-- [Table of Contents](#table-of-contents)
 - [Overview](#overview)
   - [Overall Architecture and Tool Chain](#overall-architecture-and-tool-chain)
   - [Events](#events)
