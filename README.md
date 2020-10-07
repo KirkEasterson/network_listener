@@ -20,12 +20,13 @@
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Overview](#overview)
   - [Overall Architecture and Tool Chain](#overall-architecture-and-tool-chain)
   - [Events](#events)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Prerequisites](#prerequisites)
 - [Usage](#usage)
 - [License](#license)
 - [Contact](#contact)
@@ -54,6 +55,17 @@ Callback functions have been added at specific points in Mininet. This informati
 
 This project has only been implemented with the instructions below. There is no guarantee of it working if the recommendations are not followed.
 
+### Installation
+
+To build from the github repo, use the following commands
+```
+git clone https://github.com/KirkEasterson/mininet_listener.git
+cd mininet_listener
+pip3 install -e .
+# sudo python3 setup.py install # Alternative installation method
+```
+
+
 ### Prerequisites
 
 The [P4](https://p4.org/) tools are powerful and extensive. But because there are so many, it is difficult and time-consuming to manually install them all. For this reason, the Mininet Listener was developed in a virtual machine (VM) with these necessary tools pre-installed. Information about this VM can be found [here](https://p4.org/events/2019-04-30-p4-developer-day/#virtual-machine-1). A direct link to the VM can be found [here](https://bit.ly/p4d2-spring19-adv-vm-2). A backup has been made, in which the VM can be downloaded from [here](https://drive.google.com/uc?export=view&id=1usaNzBZQzvkC4IPQk9VYr8MHaXwRN__v).
@@ -78,26 +90,10 @@ You can either change the machine's network settings or stop the machine.
 This can be solved by disabling the second network adapter in the settings for the VM as seen below.
 ![disable_second_network_adapter](./images/disable_second_network_adapter.png)
 
+The callback functions can be added to the source of Mininet, but a [forked version of Mininet](https://github.com/KirkEasterson/mininet) has been created to make use easier. To implement this modified version of Mininet, run the following commands from the desired directory in the VM.
 
-### Installation
-
-The callback functions can be added to the source of Mininet, but a [forked version of Mininet](https://github.com/KirkEasterson/mininet) has been created to make use easier. To implement this modified version of Mininet, run the following commands from the `$HOME` directory in the VM.
-
-
-HTTPS:
 ```
-mkdir modified_mininet_with_listener && cd $_
-git clone https://github.com/KirkEasterson/mininet_listener.git
 git clone https://github.com/KirkEasterson/mininet.git
-cd mininet
-util/install.sh -fnv # Install the modified version of Mininet
-```
-
-SSH:
-```
-mkdir modified_mininet_with_listener && cd $_
-git clone git@github.com:KirkEasterson/mininet_listener.git
-git clone git@github.com:KirkEasterson/mininet.git
 cd mininet
 util/install.sh -fnv # Install the modified version of Mininet
 ```
