@@ -57,11 +57,11 @@ This project has only been implemented with the instructions below. There is no 
 
 ### Installation
 
-To build from the github repo, use the following commands
+To build from the github repo, use the following commands on mac
 ```
 git clone https://github.com/KirkEasterson/mininet_listener.git
 cd mininet_listener
-pip3 install -e .
+sudo pip3 install -e .
 # sudo python3 setup.py install # Alternative installation method
 ```
 
