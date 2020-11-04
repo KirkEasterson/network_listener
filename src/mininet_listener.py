@@ -1,3 +1,5 @@
+import uuid
+
 """Mininet Listener
 
 This file is contains code for creating a listener in Mininet(https://github.com/mininet/mininet). A modified version of
@@ -30,8 +32,12 @@ class Observable:
         Notifies all observers
     """
 
+    _obervers = None
+    id = None
+
     def __init__(self):
         self._observers = set()
+        self.id = uuid.uuid4()
 
     def register(self, observer):
         """
@@ -61,7 +67,7 @@ class Observable:
         """
         self._observers.clear()
 
-    def notify_observers(self, *args, **kwargs):
+    def notify_observers(self, func, args):
         """
         Notifies all observers
 
@@ -73,7 +79,7 @@ class Observable:
             Keyword arguments
         """
         for observer in self._observers:
-            observer.notify(self, *args, **kwargs)
+            getattr(observer, func)(*args)
 
 
 class Observer:
@@ -88,11 +94,24 @@ class Observer:
         The method to be called when the Observer is notified from the Observable
     """
 
-    def __init__(self, observable):
+    observables = {}  # key:observableId ; value:observer
+
+    def __init__(self):
+        pass
+
+    def register(self, observable):
         observable.register(self)
+        self.observables[observable.id] = observable
+
+    def unregister(self, observable):
+        observable.unregister(self)
+        try:
+            del self.observables[observable.id]
+        except KeyError as ex:
+            print("No such key: '%s'" % ex.message)
 
     @abstractmethod
-    def notify(self, *args, **kwargs):
+    def notify(self, id, *args, **kwargs):
         """
         The method to be called when the Observer is notified from the Observable
 
@@ -113,7 +132,7 @@ class EventHandler(Observable):
     (https://en.wikipedia.org/wiki/Observer_pattern)
 
     ...
-    
+
     Attributes
     ----------
     commands : str[]
@@ -189,19 +208,17 @@ class EventHandler(Observable):
 
     def __init__(self):
         Observable.__init__(self)
-        logging.basicConfig(filename="mininet_listener.log", filemode="w",
-                            format="%(asctime)s %(message)s", level="INFO")
 
     def sessionStarted(self):
         """Called at the beginning of the Mininet session
-        
+
         All this does is log that the session has started
         """
         logging.info("Session started")
 
     def sessionStopped(self):
         """Called at the end of the Mininet session
-        
+
         This logs that the session has ended, and it also creates the PTF generator and generates the code.
         """
         logging.info("Session stopped")
@@ -211,7 +228,7 @@ class EventHandler(Observable):
 
     def hostAdded(self, host):
         """Callback function for when a host is added in the Mininet session
-        
+
         This adds the switch to the datastructure. It adds the hostname and IP address to the data structures.
         The host doesn't have a MAC address yet though, this is added to the data structure in a different callback
 
@@ -222,11 +239,11 @@ class EventHandler(Observable):
         """
         self.hosts.append(host.name)
         self.ips[host.name] = host.params["ip"]
-        logging.info("New host created:{} {}".format(host, host.params["ip"]))
+        logging.info("New host created: {} {}".format(host, host.params["ip"]))
 
     def hostDeleted(self, host):
         """Callback function for when a host is deleted from the Mininet session
-        
+
         This removes the host from the data structure.
 
         Parameters
@@ -239,9 +256,9 @@ class EventHandler(Observable):
 
     def switchAdded(self, switch):
         """Callback function for when a switch is added in the Mininet session
-        
+
         This adds the switch to the datastructure
-        
+
         Parameters
         ----------
         switch : Switch
@@ -252,7 +269,7 @@ class EventHandler(Observable):
 
     def switchDeleted(self, switch):
         """Callback function for when a switch is deleted from the Mininet session
-        
+
         This removes the switch from the data structure.
 
         Parameters
@@ -265,7 +282,7 @@ class EventHandler(Observable):
 
     def controllerAdded(self, controller):
         """Callback function for when a controller is added in the Mininet session
-        
+
         This adds the controller to the datastructure
 
         Parameters
@@ -279,7 +296,7 @@ class EventHandler(Observable):
 
     def controllerDeleted(self, controller):
         """Callback function for when a controller is deleted from the Mininet session
-        
+
         This removes the controller from the data structure.
 
         Parameters
@@ -303,7 +320,7 @@ class EventHandler(Observable):
 
     def linkAdded(self, link):
         """Callback function for when a link is added in the Mininet session
-        
+
         This adds the link to the datastructure
 
         Parameters
@@ -316,7 +333,7 @@ class EventHandler(Observable):
 
     def linkDeleted(self, link):
         """Callback function for when a link is deleted from the Mininet session
-        
+
         This removes the link from the data structure.
 
         Parameters
@@ -330,7 +347,7 @@ class EventHandler(Observable):
 
     def hostsConfigured(self, hosts):
         """Callback function for when hosts have been configured in the Mininet session
-        
+
         Parameters
         ----------
         host : Host[]
@@ -340,7 +357,7 @@ class EventHandler(Observable):
 
     def pingSent(self, src, dst):
         """Callback function for when a ping is sent in the Mininet session
-        
+
         This adds the ping to the datastructure, and also to the commands datastructure. The host receives a MAC address at this time, so
         the MAC address is also added to the datastructure.
 
@@ -360,7 +377,7 @@ class EventHandler(Observable):
 
     def pingFullSent(self, src, dst):
         """Callback function for when a ping full is sent in the Mininet session
-        
+
         This adds the ping full to the commands datastructure.Callback function for when a ping full is sent in the Mininet session. This adds the
         ping full to the commands datastructure.
 
@@ -377,7 +394,7 @@ class EventHandler(Observable):
 
     def pingAllSent(self, timeout):
         """Callback function for when a ping all is sent in the Mininet session
-        
+
         This adds the ping all to the commands datastructure.
 
         Parameters
@@ -390,7 +407,7 @@ class EventHandler(Observable):
 
     def pingPairSent(self, src, dst):
         """Callback function for when a ping pair is sent in the Mininet session
-        
+
         This adds the ping pair to the commands datastructure.
 
         Parameters
@@ -406,7 +423,7 @@ class EventHandler(Observable):
 
     def pingAllFullSent(self, src):
         """Callback function for when a ping all full is sent in the Mininet session
-        
+
         This adds the ping all full to the commands datastructure.
 
         Parameters
@@ -420,7 +437,7 @@ class EventHandler(Observable):
 
     def pingPairFullSent(self, src, dst):
         """Callback function for when a ping full sent is sent in the Mininet session
-        
+
         This adds the ping full sent to the commands datastructure.
 
         Parameters
@@ -449,6 +466,27 @@ class EventHandler(Observable):
         logging.info("Link status configured to {}\t{}{}\t{}{}".format(
             status, src, dst, src,  src.params, dst, dst.params))
 
+    def socketAdded(self, domain, protocol):
+        self.notify_observers("socketAdded", (self.id, domain, protocol))
+
+    def socketClosed(self):
+        self.notify_observers("socketClosed", (self.id,))
+
+    def socketBinded(self, addr):
+        self.notify_observers("socketBinded", (self.id, addr))
+
+    def socketConnected(self, addr):
+        self.notify_observers("socketConnected", (self.id, addr))
+
+    def sockoptSet(self, level, option, value):
+        self.notify_observers("sockoptSet", (self.id, level, option, value))
+
+    def dataSent(self, data, flags):
+        self.notify_observers("dataSent", (self.id, data, flags))
+
+    def dataRecv(self, flags):
+        self.notify_observers("dataRecv", (self.id, flags))
+
 
 class EventListener(Observer):
     """
@@ -464,8 +502,74 @@ class EventListener(Observer):
         The method to be called when the EventListener is notified from the Observable
     """
 
-    def __init__(self, observable):
-        Observer.__init__(self, observable)
+    socketIds = None
+    domains = {}  # key:socketId ; value:domain
+    protocols = {}  # key:socketId ; value:protocol
+    bindAddrs = {}  # key:socketId ; value:address
+    connectAddrs = {}  # key:socketId ; value:address
+    sockoptLevel = {}  # key:socketId ; value:address
+    sockoptOption = {}  # key:socketId ; value:address
+    sockoptValue = {}  # key:socketId ; value:address
+
+    dataSends = []
+    dataRecvs = []
+
+    def __init__(self):
+        Observer.__init__(self)
+        logging.basicConfig(filename="nnpy_listener.log", filemode="w",
+                            format="%(asctime)s %(message)s", level="INFO")
+        logging.info("Session started")
+        self.socketIds = set()
+
+    def generate_code(self):
+        logging.info("Code generation sequence beginning.")
+        ptfGenerator = PtfGenerator("nanomsg_ptf.py", self.domains, self.domains, self.protocols,
+                        self.bindAddrs, self.connectAddrs, self.sockoptLevel, self.sockoptOption,
+                        self.sockoptValue, self.dataSends, self.dataRecvs)
+        ptfGenerator.generate()
+
+    def socketAdded(self, id, domain, protocol):
+        self.socketIds.add(id)
+        self.domains[id] = domain
+        self.protocols[id] = protocol
+        logging.info("socket added: {} {} {}".format(id, domain, protocol))
+
+    def socketClosed(self, id):
+        self.socketIds.remove(id)
+        self.domains.pop(id, None)
+        self.protocols.pop(id, None)
+        self.bindAddrs.pop(id, None)
+        self.connectAddrs.pop(id, None)
+        self.sockoptLevel.pop(id, None)
+        self.sockoptOption.pop(id, None)
+        self.sockoptValue.pop(id, None)
+        logging.info("Socket closed: {}".format(id))
+
+        if (len(self.socketIds) == 0):
+            self.generate_code()
+
+    def socketBinded(self, id, addr):
+        self.bindAddrs[id] = addr
+        logging.info("Socket binded: {} {}".format(id, addr))
+
+    def socketConnected(self, id, addr):
+        self.connectAddrs[id] = addr
+        logging.info("Socket connected: {} {}".format(id, addr))
+
+    def sockoptSet(self, id, level, option, value):
+        self.sockoptLevel[id] = level
+        self.sockoptOption[id] = option
+        self.sockoptValue[id] = value
+        logging.info("Socket opt set: {} {} {} {}".format(
+            id, level, option, value))
+
+    def dataSent(self, id, data, flags):
+        self.dataSends.append((id, data, flags))
+        logging.info("Data sent: {} {} {}".format(id, data, flags))
+
+    def dataRecv(self, id, flags):
+        self.dataSends.append((id, flags))
+        logging.info("Data received: {} {}".format(id, flags))
 
     def notify(self, *args, **kwargs):
         """

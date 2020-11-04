@@ -1,5 +1,6 @@
 import os
 
+
 class PythonGenerator:
 
     fileName = ""
@@ -7,16 +8,14 @@ class PythonGenerator:
     def __init__(self, fileName):
         self.fileName = fileName
 
-
     def writeToFile(self, code):
         file = open(self.fileName, "w")
         file.write(code)
         file.close()
 
-
     def indentCode(self, code, level=0):
         result = ""
-        indentation = "\t"*level  
+        indentation = "\t"*level
         for line in code.split("\n"):
             result += "{}{}\n".format(indentation, line)
         return result
@@ -27,45 +26,43 @@ class PythonGenerator:
             commented += "# {}".format(line)
         return self.indentCode(commented, level)
 
-
     def generateImport(self, importValue, fromValue="", asValue="", level=0):
         fromPortion = "from {} ".format(fromValue) if (fromValue) else ""
         asPortion = " as {}".format(asValue) if (asValue) else ""
-        importLine = "{}import {}{}".format(fromPortion, importValue, asPortion)
+        importLine = "{}import {}{}".format(
+            fromPortion, importValue, asPortion)
         return self.indentCode(importLine, level)
-
 
     # imports is an array of tuples containing (importValue, fromvalue, asValue)
     # this doesn't read like a usual python import, but makes it easy to allow for
     #   optional "from ..." and "... as ..." values
+
     def generatePreamble(self, imports, level=0):
         preamble = ""
         for (importValue, fromValue, asValue) in imports:
             preamble += self.generateImport(importValue, fromValue, asValue)
         return self.indentCode(preamble, level)
 
-
     def assignVariable(self, varName, value, level=0):
         variable = """{} = {}""".format(varName, value)
         return self.indentCode(variable, level)
 
-
     # vars is an array of tuples containing (name, value)
     # this makes it easy to declare many variables at once, but also allowing the flexibility of only declaring one variable
+
     def assignVariables(self, vars, level=0):
         variableLine = ""
         for (varName, varValue) in vars:
             variableLine += self.assignVariable(varName, varValue)
         return self.indentCode(variableLine, level)
 
-
     def generateClassDefinition(self, className, superClass="", level=0):
         superClassPortion = "({})".format(superClass) if superClass else ""
         classDef = "class {}{}:\n".format(className, superClassPortion)
         return self.indentCode(classDef, level)
 
-
     # args is an array of tuples containing (argName, defaultValue)
+
     def generateMethodDefinition(self, methodName, args=[], level=0):
         methodArgs = "self"
         for (argName, defaultValue) in args:
@@ -77,10 +74,6 @@ class PythonGenerator:
 
     def generateCodeBlock(self, block, level=0):
         return self.indentCode(block, level)
-
-
-
-
 
 
 class PtfGenerator(PythonGenerator):
@@ -95,20 +88,31 @@ class PtfGenerator(PythonGenerator):
     ips = {}
     pings = {}
 
-    def __init__(self, fileName, commands, hosts, switches, controllers, links, macs, ips, pings):
+    socketIds = None
+    domains = {}  # key:socketId ; value:domain
+    protocols = {}  # key:socketId ; value:protocol
+    bindAddrs = {}  # key:socketId ; value:address
+    connectAddrs = {}  # key:socketId ; value:address
+    sockoptLevel = {}  # key:socketId ; value:address
+    sockoptOption = {}  # key:socketId ; value:address
+    sockoptValue = {}  # key:socketId ; value:address
+
+    dataSends = []
+    dataRecvs = []
+
+    def __init__(self, fileName, socketIds, domains, protocols, bindAddrs, connectAddrs,
+                    sockoptLevel, sockoptOption, sockoptValue, dataSends, dataRecvs):
         PythonGenerator.__init__(self, fileName)
-        self.commands = commands
-        self.hosts = hosts
-        self.switches = switches
-        self.controllers = controllers
-        self.links = links
-        self.macs = macs
-        self.ips = ips
-        self.pings = pings
-
-        pkts = []
-
-
+        self.socketIds = socketIds
+        self.domains = domains
+        self.protocols = protocols
+        self.bindAddrs = bindAddrs
+        self.connectAddrs = connectAddrs
+        self.sockoptLevel = sockoptLevel
+        self.sockoptOption = sockoptOption
+        self.sockoptValue = sockoptValue
+        self.dataSends = dataSends
+        self.dataRecvs = dataRecvs
 
     def createPacket(self, pktName, src, dst, level=0):
         pkt = """
@@ -122,9 +126,8 @@ pkts.append({pktName})
 """.format(pktName=pktName, src=src, dst=dst)
         return self.indentCode(pkt, level)
 
-
-
     # packets is a list containing the variable names of all the packets
+
     def sendPackets(self, level=0):
         sendBlock = """
 for pkt in pkts:
@@ -143,8 +146,6 @@ for pkt in pkts:
 """
         return self.indentCode(sendBlock, level)
 
-
-
     def generateRunTestMethod(self, level=0):
 
         code_block = self.indentCode("def runTest(self):", level)
@@ -157,8 +158,6 @@ for pkt in pkts:
         code_block += self.sendPackets(level+1)
 
         return code_block
-
-
 
     def generate(self):
 
@@ -180,7 +179,7 @@ for pkt in pkts:
 
         code += self.addComment("The variables below are from the Mininet session")
         code += self.assignVariables(vars_from_mn)
-        
+
         code += self.generateClassDefinition("FirstTest", "P4RuntimeTest")
         code += self.generateRunTestMethod(1)
         self.writeToFile(code)
