@@ -158,23 +158,23 @@ class EventHandler(Observable):
     def socketAdded(self, domain, protocol):
         self.notify_observers("socketAdded", (self.id, domain, protocol))
 
-    def socketClosed(self):
-        self.notify_observers("socketClosed", (self.id,))
+    def close(self):
+        self.notify_observers("close", (self.id,))
 
-    def socketBinded(self, addr):
-        self.notify_observers("socketBinded", (self.id, addr))
+    def bind(self, addr):
+        self.notify_observers("bind", (self.id, addr))
 
-    def socketConnected(self, addr):
-        self.notify_observers("socketConnected", (self.id, addr))
+    def connect(self, addr):
+        self.notify_observers("connect", (self.id, addr))
 
-    def sockoptSet(self, level, option, value):
-        self.notify_observers("sockoptSet", (self.id, level, option, value))
+    def setsockopt(self, level, option, value):
+        self.notify_observers("setsockopt", (self.id, level, option, value))
 
-    def dataSent(self, data, flags):
-        self.notify_observers("dataSent", (self.id, data, flags))
+    def send(self, data, flags):
+        self.notify_observers("send", (self.id, data, flags))
 
-    def dataRecv(self, flags):
-        self.notify_observers("dataRecv", (self.id, flags))
+    def recv(self, flags):
+        self.notify_observers("recv", (self.id, flags))
 
 
 class SocketState():
@@ -183,7 +183,7 @@ class SocketState():
 
     closed = False
 
-    domains = None
+    domain = None
     protocol = None
     bindAddr = None
     connectAddr = None
@@ -212,13 +212,6 @@ class EventListener(Observer):
 
     socketStates = None
     activeSockets = 0
-    # domains = {}  # key:socketId ; value:domain
-    # protocols = {}  # key:socketId ; value:protocol
-    # bindAddrs = {}  # key:socketId ; value:address
-    # connectAddrs = {}  # key:socketId ; value:address
-    # sockoptLevel = {}  # key:socketId ; value:address
-    # sockoptOption = {}  # key:socketId ; value:address
-    # sockoptValue = {}  # key:socketId ; value:address
 
     dataSends = []
     dataRecvs = []
@@ -241,7 +234,7 @@ class EventListener(Observer):
         self.socketStates[id] = socketState
         logging.info("socket added: {} {} {}".format(id, domain, protocol))
 
-    def socketClosed(self, id):
+    def close(self, id):
         self.socketStates[id].closed = True
         self.activeSockets -= 1
         logging.info("Socket closed: {}".format(id))
@@ -249,26 +242,26 @@ class EventListener(Observer):
         if (self.activeSockets == 0):
             self.generate_code()
 
-    def socketBinded(self, id, addr):
+    def bind(self, id, addr):
         self.socketStates[id].bindAddr = addr
         logging.info("Socket binded: {} {}".format(id, addr))
 
-    def socketConnected(self, id, addr):
+    def connect(self, id, addr):
         self.socketStates[id].connectAddrs = addr
         logging.info("Socket connected: {} {}".format(id, addr))
 
-    def sockoptSet(self, id, level, option, value):
+    def setsockopt(self, id, level, option, value):
         self.socketStates[id].sockoptLevel = level
         self.socketStates[id].sockoptOption = option
         self.socketStates[id].sockoptValue = value
         logging.info("Socket opt set: {} {} {} {}".format(
             id, level, option, value))
 
-    def dataSent(self, id, data, flags):
+    def send(self, id, data, flags):
         self.dataSends.append((id, data, flags))
         logging.info("Data sent: {} {} {}".format(id, data, flags))
 
-    def dataRecv(self, id, flags):
+    def recv(self, id, flags):
         self.dataSends.append((id, flags))
         logging.info("Data received: {} {}".format(id, flags))
 
