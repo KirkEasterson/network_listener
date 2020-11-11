@@ -88,29 +88,14 @@ class PtfGenerator(PythonGenerator):
     ips = {}
     pings = {}
 
-    socketIds = None
-    domains = {}  # key:socketId ; value:domain
-    protocols = {}  # key:socketId ; value:protocol
-    bindAddrs = {}  # key:socketId ; value:address
-    connectAddrs = {}  # key:socketId ; value:address
-    sockoptLevel = {}  # key:socketId ; value:address
-    sockoptOption = {}  # key:socketId ; value:address
-    sockoptValue = {}  # key:socketId ; value:address
+    socketStates = None
 
     dataSends = []
     dataRecvs = []
 
-    def __init__(self, fileName, socketIds, domains, protocols, bindAddrs, connectAddrs,
-                    sockoptLevel, sockoptOption, sockoptValue, dataSends, dataRecvs):
+    def __init__(self, fileName, socketStates, dataSends, dataRecvs):
         PythonGenerator.__init__(self, fileName)
-        self.socketIds = socketIds
-        self.domains = domains
-        self.protocols = protocols
-        self.bindAddrs = bindAddrs
-        self.connectAddrs = connectAddrs
-        self.sockoptLevel = sockoptLevel
-        self.sockoptOption = sockoptOption
-        self.sockoptValue = sockoptValue
+        self.socketStates = socketStates
         self.dataSends = dataSends
         self.dataRecvs = dataRecvs
 
