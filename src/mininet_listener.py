@@ -1,6 +1,7 @@
 # TODO: Update documentation
 
 import uuid
+# from Enum import enum
 
 """Mininet Listener
 
@@ -169,6 +170,8 @@ class EventHandler(Observable):
         Called at the beginning of the Mininet session
     """
 
+
+
     def __init__(self):
         Observable.__init__(self)
 
@@ -200,6 +203,10 @@ class EventHandler(Observable):
     def recv(self, flags):
         self.notify_observers("recv", (self.id, flags))
 
+
+class ListenerMode(Enum):
+    STD = 0
+    TEST = 1
 
 class SocketState():
 
@@ -234,22 +241,25 @@ class EventListener(Observer):
         The method to be called when the EventListener is notified from the Observable
     """
 
+    mode = None
+
     socketStates = None
     activeSockets = 0
 
     dataSends = []
     dataRecvs = []
 
-    def __init__(self):
+    def __init__(self, mode="std"):
         Observer.__init__(self)
         logging.basicConfig(filename="nnpy_listener.log", filemode="w",
                             format="%(asctime)s %(message)s", level="INFO")
         logging.info("Session started")
         self.socketStates = {}
+        self.mode = mode
 
     def generate_code(self):
         logging.info("Code generation sequence beginning.")
-        ptfGenerator = PtfGenerator("nanomsg_ptf.py", self.socketStates, self.dataSends, self.dataRecvs)
+        ptfGenerator = PtfGenerator("nanomsg_ptf.py", self.mode, self.socketStates, self.dataSends, self.dataRecvs)
         ptfGenerator.generate()
 
     def socketAdded(self, id, domain, protocol):

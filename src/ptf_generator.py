@@ -13,6 +13,9 @@ class PythonGenerator:
         file.write(code)
         file.close()
 
+    def generateBlankLine(self, n=1):
+        return "\n"*n
+
     def indentCode(self, code, level=0):
         result = ""
         indentation = "\t"*level
@@ -37,10 +40,15 @@ class PythonGenerator:
     # this doesn't read like a usual python import, but makes it easy to allow for
     #   optional "from ..." and "... as ..." values
 
-    def generatePreamble(self, imports, level=0):
+    def generatePreamble(self, imports, level=0, mode=None):
         preamble = ""
         for (importValue, fromValue, asValue) in imports:
             preamble += self.generateImport(importValue, fromValue, asValue)
+        
+        if (mode == "test"):
+            preamble += self.generateBlankLine()
+            preamble += "sys.stdout = open('ptf_generator_stdout.txt', 'w')\n"
+            preamble += "sys.stderr = open('ptf_generator_stdout.txt', 'w')"
         return self.indentCode(preamble, level)
 
     def assignVariable(self, varName, value, level=0):
@@ -78,6 +86,8 @@ class PythonGenerator:
 
 class PtfGenerator(PythonGenerator):
 
+    mode = None
+
     commands = ()
     hosts = set()
     switches = set()
@@ -93,8 +103,9 @@ class PtfGenerator(PythonGenerator):
     dataSends = []
     dataRecvs = []
 
-    def __init__(self, fileName, socketStates, dataSends, dataRecvs):
+    def __init__(self, fileName, mode, socketStates, dataSends, dataRecvs):
         PythonGenerator.__init__(self, fileName)
+        self.mode = mode
         self.socketStates = socketStates
         self.dataSends = dataSends
         self.dataRecvs = dataRecvs
@@ -151,6 +162,9 @@ for pkt in pkts:
             ("*", "lib.base_test", ""),
         ]
 
+        if (self.mode == "test"):
+            imports.append(("sys", "", ""))
+
         global_vars = []
 
         vars_from_mn = [
@@ -159,7 +173,7 @@ for pkt in pkts:
             ("ips", str(self.ips))
         ]
 
-        code = self.generatePreamble(imports)
+        code = self.generatePreamble(imports, mode=self.mode)
         code += self.assignVariables(global_vars)
 
         code += self.addComment("The variables below are from the Mininet session")
