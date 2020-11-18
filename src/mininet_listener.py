@@ -1,3 +1,5 @@
+# TODO: Update documentation
+
 import uuid
 
 """Mininet Listener
@@ -100,10 +102,26 @@ class Observer:
         pass
 
     def register(self, observable):
+        """
+        Registers an observable to the Observer
+
+        Parameters
+        ----------
+        observable : Observable
+            The observe rot be registered
+        """
         observable.register(self)
         self.observables[observable.id] = observable
 
     def unregister(self, observable):
+        """
+        Unregisters an observable from the Observer
+
+        Parameters
+        ----------
+        observable : Observable
+            The observable to be unregistered
+        """
         observable.unregister(self)
         try:
             del self.observables[observable.id]
@@ -133,9 +151,15 @@ class Observer:
 
 class EventHandler(Observable):
     """
-    This class is specific for callback functions in the Modified version of Mininet(https://github.com/KirkEasterson/mininet).
-    It extends the Observable class, which implements an Observable from the Observer design pattern
-    (https://en.wikipedia.org/wiki/Observer_pattern)
+    This class is specific for callback functions in the modified version of
+    nnpy(https://github.com/KirkEasterson/nnpy/tree/generate-ptf-source-code). It extends
+    the Observable class, which implements an Observable from the Observer design pattern
+    (https://en.wikipedia.org/wiki/Observer_pattern).
+
+    This implementation will suffer when scaled, since it requires each method call to be
+    written twice (in both EventHandler and EventListener). Ideally a generic update_listeners
+    method would be implemented. If more callback methods are to be added, this generic
+    update_listeners method should be implemented.
 
     ...
 
