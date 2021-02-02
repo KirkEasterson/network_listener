@@ -1,4 +1,7 @@
 import os
+import math
+import ipaddress
+import random
 
 
 class PythonGenerator:
@@ -12,6 +15,7 @@ class PythonGenerator:
         file = open(self.fileName, "w")
         file.write(code)
         file.close()
+    
 
     def generateBlankLine(self, n=1):
         return "\n"*n
@@ -86,6 +90,12 @@ class PythonGenerator:
 
 class PtfGenerator(PythonGenerator):
 
+    NETWORK_SIZE = 256 # number of addresses on each network
+    SUBNET_MASK = 32 - int(math.floor(math.log(NETWORK_SIZE, 2)))
+    NETWORK_SEED = 167772160 # 10.0.0.0 in binary in decimal
+
+    networks = {}
+
     mode = None
 
     commands = ()
@@ -100,15 +110,73 @@ class PtfGenerator(PythonGenerator):
 
     socketStates = None
 
+    addrs = set()
+
+    pubs = {}
+    subs = {}
+    broadcasts = {}
+
     dataSends = []
     dataRecvs = []
 
-    def __init__(self, fileName, mode, socketStates, dataSends, dataRecvs):
+    def random_bytes(self, num=6):
+        return [random.randrange(256) for _ in range(num)]
+
+    # def generate_mac(self, uaa=False, multicast=False, oui=None, separator=':', byte_fmt='%02x'):
+    def generate_mac(self):
+        mac = self.random_bytes()
+        # if oui:
+        #     if type(oui) == str:
+        #         oui = [int(chunk) for chunk in oui.split(separator)]
+        #     mac = oui + random_bytes(num=6-len(oui))
+        # else:
+        #     if multicast:
+        #         mac[0] |= 1 # set bit 0
+        #     else:
+        #         mac[0] &= ~1 # clear bit 0
+        #     if uaa:
+        #         mac[0] &= ~(1 << 1) # clear bit 1
+        #     else:
+        #         mac[0] |= 1 << 1 # set bit 1
+        return ':'.join('%02x' % b for b in mac)
+
+    def create_networks(self, addrs):
+        curr_network = self.NETWORK_SEED
+        for addr in addrs:
+            self.networks[addr] = (ipaddress.ip_network((curr_network, self.SUBNET_MASK)), 0)
+            curr_network += self.NETWORK_SIZE
+
+    def add_pubs(self, pubs):
+        for pub in pubs:
+            socketState = self.socketStates[pub]
+            addr = socketState.addr
+            (ip_network_addr, num_hosts) = self.networks[addr]
+            ip_host_addr = ip_network_addr + num_hosts + 1
+            self.pubs[socketState.id] = ipaddress.ip_address(ip_host_addr)
+            
+            ip_broadcast_addr = ip_network_addr + self.NETWORK_SIZE - 1 # broadcast address for the network
+            self.broadcasts[ip_network_addr] = ip_broadcast_addr
+            # self.macs[socketState.socketId] = self.generate_mac()
+    
+    def add_subs(self, subs):
+        for sub in subs:
+            socketState = self.socketStates[sub]
+            addr = socketState.addr
+            (ip_network_addr, _) = self.networks[addr]
+            ip_host_addr = int(ip_network_addr) + self.NETWORK_SIZE - 1 # broadcast address for the network
+            self.subs[socketState.id] = ipaddress.ip_address(ip_host_addr)
+            # self.macs[socketState.socketId] = self.generate_mac()
+    
+    def __init__(self, fileName, mode, socketStates, addrs, pubs, subs, dataSends, dataRecvs):
         PythonGenerator.__init__(self, fileName)
         self.mode = mode
         self.socketStates = socketStates
         self.dataSends = dataSends
         self.dataRecvs = dataRecvs
+        self.create_networks(addrs)
+        self.add_pubs(pubs)
+        # self.add_subs(subs)
+        self.subs = subs
 
     def createPacket(self, pktName, src, dst, level=0):
         pkt = """
@@ -147,9 +215,9 @@ for pkt in pkts:
         code_block = self.indentCode("def runTest(self):", level)
         code_block += self.assignVariable("pkts", "[]", level+1)
 
-        for num, (src, dst) in enumerate(self.pings, start=1):
-            pktName = "pkt{}".format(num)
-            code_block += self.createPacket(pktName, src, dst, level+1)
+        for num, (socketId, addr) in enumerate(self.pubs.iteritems()):
+            pktName = "pkt{}".format(num+1)
+            code_block += self.createPacket(pktName, self.ips[socketId], self.broadcasts[addr], level+1)
 
         code_block += self.sendPackets(level+1)
 
@@ -167,13 +235,18 @@ for pkt in pkts:
 
         global_vars = []
 
+        # merge the two dicts of ip addresses
+        ips = self.pubs.copy()
+        ips.update(self.subs)
+
         vars_from_mn = [
-            ("hosts", str(self.hosts)),
-            ("macs", str(self.macs)),
-            ("ips", str(self.ips))
+            ("ips", str(self.ips)),
         ]
 
-        code = self.generatePreamble(imports, mode=self.mode)
+        code = "#!/usr/bin/python"
+        code += self.generateBlankLine()
+
+        code += self.generatePreamble(imports, mode=self.mode)
         code += self.assignVariables(global_vars)
 
         code += self.addComment("The variables below are from the Mininet session")

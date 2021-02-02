@@ -14,6 +14,7 @@ necessary to simulate the session in PTF (https://github.com/p4lang/ptf) and the
 from abc import abstractmethod
 from enum import Enum
 import logging
+import nnpy
 from ptf_generator import PtfGenerator
 
 
@@ -222,10 +223,15 @@ class SocketState():
     sockoptOption = None
     sockoptValue = None
 
+    addr = ''
+
     def __init__(self, socketId, domain, protocol):
         self.socketId = socketId
         self.domain = domain
         self.protocol = protocol
+    
+    def setAddr(self, addr):
+        self.addr = addr
 
 class EventListener(Observer):
     """
@@ -246,6 +252,11 @@ class EventListener(Observer):
     socketStates = None
     activeSockets = 0
 
+    addrs = set()
+
+    pubs = {}
+    subs = {}
+
     dataSends = []
     dataRecvs = []
 
@@ -259,14 +270,17 @@ class EventListener(Observer):
 
     def generate_code(self):
         logging.info("Code generation sequence beginning.")
-        ptfGenerator = PtfGenerator("nanomsg_ptf.py", self.mode, self.socketStates, self.dataSends, self.dataRecvs)
+        ptfGenerator = PtfGenerator("nanomsg_ptf.py", self.mode, self.socketStates, self.addrs, self.pubs, self.subs, self.dataSends, self.dataRecvs)
         ptfGenerator.generate()
 
     def socketAdded(self, id, domain, protocol):
         socketState = SocketState(id, domain, protocol)
         self.activeSockets += 1
         self.socketStates[id] = socketState
-        logging.info("socket added: {} {} {}".format(id, domain, protocol))
+        if(protocol == nnpy.SUB or protocol == nnpy.PUB):
+            logging.info("socket added: {} {} {}".format(id, domain, protocol))
+        else:
+            logging.error("socket added with unsupported protocol: {} {} {}".format(id, domain, protocol))
 
     def close(self, id):
         self.socketStates[id].closed = True
@@ -278,6 +292,16 @@ class EventListener(Observer):
 
     def bind(self, id, addr):
         self.socketStates[id].bindAddr = addr
+        self.addrs.add(addr)
+        if (self.socketStates[id].protocol == nnpy.PUB):
+            self.pubs[id] = addr
+            # self.subs.pop(id, None)
+        elif (self.socketStates[id].protocol == nnpy.SUB):
+            if (self.subs[addr] == None):
+                self.subs[addr] = set()
+            self.subs[addr].add(id)
+            # self.pubs.pop(id, None)
+        self.socketStates[id].setAddr(addr)
         logging.info("Socket binded: {} {}".format(id, addr))
 
     def connect(self, id, addr):
@@ -296,7 +320,7 @@ class EventListener(Observer):
         logging.info("Data sent: {} {} {}".format(id, data, flags))
 
     def recv(self, id, flags):
-        self.dataSends.append((id, flags))
+        self.dataRecvs.append((id, flags))
         logging.info("Data received: {} {}".format(id, flags))
 
     def notify(self, *args, **kwargs):
