@@ -119,55 +119,33 @@ class PtfGenerator(PythonGenerator):
     dataSends = []
     dataRecvs = []
 
-    def random_bytes(self, num=6):
-        return [random.randrange(256) for _ in range(num)]
-
-    # def generate_mac(self, uaa=False, multicast=False, oui=None, separator=':', byte_fmt='%02x'):
-    def generate_mac(self):
-        mac = self.random_bytes()
-        # if oui:
-        #     if type(oui) == str:
-        #         oui = [int(chunk) for chunk in oui.split(separator)]
-        #     mac = oui + random_bytes(num=6-len(oui))
-        # else:
-        #     if multicast:
-        #         mac[0] |= 1 # set bit 0
-        #     else:
-        #         mac[0] &= ~1 # clear bit 0
-        #     if uaa:
-        #         mac[0] &= ~(1 << 1) # clear bit 1
-        #     else:
-        #         mac[0] |= 1 << 1 # set bit 1
-        return ':'.join('%02x' % b for b in mac)
-
     def create_networks(self, addrs):
         curr_network = self.NETWORK_SEED
         for addr in addrs:
-            self.networks[addr] = (ipaddress.ip_network((curr_network, self.SUBNET_MASK)), 0)
+            network = ipaddress.ip_network((curr_network, self.SUBNET_MASK))
+            print(network.hosts())
+            self.networks[addr] = (network, 0)
             curr_network += self.NETWORK_SIZE
 
+    def add_host_to_network(self, socketId):
+        socketState = self.socketStates[socketId]
+        addr = socketState.addr
+        (ip_network_addr, num_hosts) = self.networks[addr]
+        ip_host_addr = ipaddress.ip_address(int(ip_network_addr.network_address) + num_hosts + 1)
+        self.ips[socketId] = ip_host_addr
+        self.networks[addr] = (ip_network_addr, num_hosts+1)
+
     def add_pubs(self, pubs):
-        for pub in pubs:
-            socketState = self.socketStates[pub]
-            addr = socketState.addr
-            (ip_network_addr, num_hosts) = self.networks[addr]
-            ip_host_addr = ip_network_addr + num_hosts + 1
-            self.pubs[socketState.id] = ipaddress.ip_address(ip_host_addr)
-            
-            ip_broadcast_addr = ip_network_addr + self.NETWORK_SIZE - 1 # broadcast address for the network
-            self.broadcasts[ip_network_addr] = ip_broadcast_addr
-            # self.macs[socketState.socketId] = self.generate_mac()
-    
+        for pubId in pubs:
+            self.add_host_to_network(pubId)
+
     def add_subs(self, subs):
-        for sub in subs:
-            socketState = self.socketStates[sub]
-            addr = socketState.addr
-            (ip_network_addr, _) = self.networks[addr]
-            ip_host_addr = int(ip_network_addr) + self.NETWORK_SIZE - 1 # broadcast address for the network
-            self.subs[socketState.id] = ipaddress.ip_address(ip_host_addr)
-            # self.macs[socketState.socketId] = self.generate_mac()
-    
+        for subId in subs:
+            self.add_host_to_network(subId)
+
     def __init__(self, fileName, mode, socketStates, addrs, pubs, subs, dataSends, dataRecvs):
+        print(pubs)
+        print(subs)
         PythonGenerator.__init__(self, fileName)
         self.mode = mode
         self.socketStates = socketStates
@@ -175,17 +153,16 @@ class PtfGenerator(PythonGenerator):
         self.dataRecvs = dataRecvs
         self.create_networks(addrs)
         self.add_pubs(pubs)
-        # self.add_subs(subs)
+        self.add_subs(subs)
+        self.pubs = pubs
         self.subs = subs
 
     def createPacket(self, pktName, src, dst, level=0):
         pkt = """
 print(\"Sending packet - {src} -> {dst}\")
 {pktName} = testutils.simple_tcp_packet(
-                        eth_src=macs[\"{src}\"],
-                        eth_dst=macs[\"{dst}\"],
-                        ip_src=ips[\"{src}\"],
-                        ip_dst=ips[\"{dst}\"])
+                        ip_src=str(ips[\"{src}\"]),
+                        ip_dst=str(ips[\"{dst}\"]))
 pkts.append({pktName})
 """.format(pktName=pktName, src=src, dst=dst)
         return self.indentCode(pkt, level)
@@ -215,9 +192,16 @@ for pkt in pkts:
         code_block = self.indentCode("def runTest(self):", level)
         code_block += self.assignVariable("pkts", "[]", level+1)
 
-        for num, (socketId, addr) in enumerate(self.pubs.iteritems()):
+        for num, pubId in enumerate(self.pubs):
             pktName = "pkt{}".format(num+1)
-            code_block += self.createPacket(pktName, self.ips[socketId], self.broadcasts[addr], level+1)
+            # network_addr = self.networks[self.socketStates[socketId].bindAddr][0]
+            socketState = self.socketStates[pubId]
+            addr = socketState.addr
+            subs = filter(lambda subId: (self.socketStates[subId].addr == addr), self.subs)
+            for sub in subs:
+                code_block += self.createPacket(pktName, pubId, sub, level+1)
+
+
 
         code_block += self.sendPackets(level+1)
 
@@ -228,6 +212,7 @@ for pkt in pkts:
         imports = [
             ("group", "ptf.testutils", ""),
             ("*", "lib.base_test", ""),
+            ('ipaddress', '', '')
         ]
 
         if (self.mode == "test"):
@@ -236,11 +221,10 @@ for pkt in pkts:
         global_vars = []
 
         # merge the two dicts of ip addresses
-        ips = self.pubs.copy()
-        ips.update(self.subs)
+        foramtted_ips = dict((str(k), str(v)) for k,v in self.ips.items())
 
         vars_from_mn = [
-            ("ips", str(self.ips)),
+            ("ips", str(foramtted_ips)),
         ]
 
         code = "#!/usr/bin/python"

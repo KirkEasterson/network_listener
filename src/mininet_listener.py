@@ -291,21 +291,16 @@ class EventListener(Observer):
             self.generate_code()
 
     def bind(self, id, addr):
-        self.socketStates[id].bindAddr = addr
+        # self.socketStates[id].bindAddr = addr
         self.addrs.add(addr)
-        if (self.socketStates[id].protocol == nnpy.PUB):
-            self.pubs[id] = addr
-            # self.subs.pop(id, None)
-        elif (self.socketStates[id].protocol == nnpy.SUB):
-            if (self.subs[addr] == None):
-                self.subs[addr] = set()
-            self.subs[addr].add(id)
-            # self.pubs.pop(id, None)
+        self.pubs[id] = addr
         self.socketStates[id].setAddr(addr)
         logging.info("Socket binded: {} {}".format(id, addr))
 
     def connect(self, id, addr):
-        self.socketStates[id].connectAddrs = addr
+        self.addrs.add(addr)
+        self.subs[id] = addr
+        self.socketStates[id].setAddr(addr)
         logging.info("Socket connected: {} {}".format(id, addr))
 
     def setsockopt(self, id, level, option, value):
