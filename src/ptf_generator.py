@@ -123,7 +123,6 @@ class PtfGenerator(PythonGenerator):
         curr_network = self.NETWORK_SEED
         for addr in addrs:
             network = ipaddress.ip_network((curr_network, self.SUBNET_MASK))
-            print(network.hosts())
             self.networks[addr] = (network, 0)
             curr_network += self.NETWORK_SIZE
 
@@ -144,8 +143,6 @@ class PtfGenerator(PythonGenerator):
             self.add_host_to_network(subId)
 
     def __init__(self, fileName, mode, socketStates, addrs, pubs, subs, dataSends, dataRecvs):
-        print(pubs)
-        print(subs)
         PythonGenerator.__init__(self, fileName)
         self.mode = mode
         self.socketStates = socketStates
