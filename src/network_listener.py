@@ -1,14 +1,11 @@
-# TODO: Update documentation
-
 import uuid
-# from Enum import enum
 
-"""Mininet Listener
+"""Network Listener
 
-This file is contains code for creating a listener in Mininet(https://github.com/mininet/mininet). A modified version of
-Mininet is in development that implements this listener (https://github.com/KirkEasterson/mininet). This implementation
-uses an observer pattern with callback functions designed to be added at points in Mininet. These functions store the data
-necessary to simulate the session in PTF (https://github.com/p4lang/ptf) and then perform tests from the Mininet session.
+This file is contains code for creating a listener in nnpy(https://github.com/nanomsg/nnpy). A modified version of
+nnpy is in development that implements this listener (https://github.com/KirkEasterson/nnpy). This implementation
+uses an observer pattern with callback functions designed to be added at points in nnpy. These functions store the data
+necessary to simulate the session in PTF (https://github.com/p4lang/ptf) and then perform tests from the nnpy session.
 """
 
 from abc import abstractmethod
@@ -168,7 +165,7 @@ class EventHandler(Observable):
     Methods
     -------
     sessionStarted()
-        Called at the beginning of the Mininet session
+        Called at the beginning of the nnpy session
     """
 
 
@@ -177,7 +174,7 @@ class EventHandler(Observable):
         Observable.__init__(self)
 
     def sessionStarted(self):
-        """Called at the beginning of the Mininet session
+        """Called at the beginning of the nnpy session
 
         All this does is log that the session has started
         """
@@ -235,7 +232,7 @@ class SocketState():
 
 class EventListener(Observer):
     """
-    This class is specific for callback functions in the Modified version of Mininet(https://github.com/KirkEasterson/mininet).
+    This class is specific for callback functions in the Modified version of nnpy(https://github.com/KirkEasterson/nnpy).
     It extends the Observer class, which implements an Observer from the Observer design pattern
     (https://en.wikipedia.org/wiki/Observer_pattern)
 
