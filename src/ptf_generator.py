@@ -208,7 +208,7 @@ for pkt in pkts:
 
         imports = [
             ("group", "ptf.testutils", ""),
-            ("*", "lib.base_test", ""),
+            ("*", "ptf.base_tests", ""),
             ('ipaddress', '', '')
         ]
 
@@ -233,6 +233,6 @@ for pkt in pkts:
         code += self.addComment("The variables below are from the Mininet session")
         code += self.assignVariables(vars_from_mn)
 
-        code += self.generateClassDefinition("FirstTest", "P4RuntimeTest")
+        code += self.generateClassDefinition("FirstTest", "BaseTest")
         code += self.generateRunTestMethod(1)
         self.writeToFile(code)
